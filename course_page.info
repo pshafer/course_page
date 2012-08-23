@@ -1,0 +1,7 @@
+name = Course page
+description = Exposes Drupal Page as a course object
+package = Course objects
+core = 6.x
+dependencies[] = course
+dependencies[] = system
+files[] = course_page.classes.inc

@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * Course context handler callback
+ */
+function course_page_context() {
+  $node = node_load(arg(1));
+
+  return array(
+    'object_type' => 'page',
+    'instance' => $node->nid,
+  );
+}
+
+/**
+ * Implements hook_course_handlers() 
+ */
+function course_page_course_handlers() {
+  return array(
+    'object' => array(
+      'page' => array(
+        'name' => t('Page'),
+        'class' => 'CourseObjectPage',
+        'description' => t('A Page course object.'),
+      ),
+    ),
+    'context' => array(
+      'page' => array(
+        'callback' => 'course_page_context',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_init()
+ */
+function course_page_init() {
+  if(arg(0) == 'node') {
+    global $user;
+    $node = node_load(arg(1));
+    
+    if($node && $node->type == 'page') {
+      $nid = $node->nid;
+      
+      if($courseObject = course_get_course_object('course_page', 'page', $nid, $user)){
+        $options = array();
+        $options['page_fullfilment'][$node->nid] = TRUE;
+        $courseObject->getFulfillment()->addOptions($options)->save();
+        $courseObject->grade();
+      }
+    }
+  }
+}
