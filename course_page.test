@@ -1,0 +1,73 @@
+<?php
+
+// include CourseTestCase 
+require_once(drupal_get_path('module', 'course') . '/tests/CourseTestCase.test');
+
+
+/**
+ * Test for Page support in Course
+ */
+class CourseObjectPageTestCase extends CourseTestCase {
+  
+  public static function getInfo() {
+    return array(
+      'name' => 'Course object page',
+      'description' => 'Test that page course object support functions properly',
+      'group' => 'Course',
+    );
+  }
+  
+  /**
+   * Implementation of getModules
+   *
+   * @return array of modules
+   */
+  function getModules() {
+    $modules = parent::getModules();  // get parent modules
+    $modules[] = 'system';            // add system, it's core, so it should be there by default
+    $modules[] = 'node';              // adding node to be safe
+    $modules[] = 'course_page';       // add course_page
+    return $modules;                  // return modules
+  }
+  
+  /**
+   * impelentation of setUp
+   */
+  function setUp() {
+    parent::setup();                  // call parent setup
+    $this->page_admin = $this->drupalCreateUser(array('administer nodes') + node_perm()); // using node_perm is probably greedy/overkill
+  }
+  
+  /**
+   * implement testPageCourseObject()
+   */
+  function testPageCourseObject() {
+    $this->drupalLogin($this->page_admin);
+    
+    $courseNode = $this->createCourseNode();
+    $co1 = course_get_course_object('course_page','page');
+    $co1->setOption('page_tracking','true');
+    $co1->setUser($this->page_admin);
+    $co1->save();
+    
+    // make assertion the an instance was create
+    $this->assertTrue($co1->getInstanceId() > 0, 'page node created on course object save.');
+    
+    //get the page node
+    $pageNode = node_load($co1->getInstanceId());
+    
+    // make assertion that the node is actually a page node
+    $this->assertTrue($pageNode->type == 'page', 'page node is a page.');
+    
+    // Test fulfillment, and that the fulfillment is not completed at this point (page hasn't been viewed)
+    $this->assertFalse($co1->getFulfillment()->isComplete(), 'Check tha page object is not complete.');
+    
+    // Visit the page
+    $this->drupalGet("node/" . $co1->getInstanceId());
+    
+    //Reload the course object
+    $co1 = course_get_course_object_by_id($co1->getId(), $this->page_admin);
+    $this->assertTrue($co1->getFulfillment()->isComplete(), 'Check that page object is now complete after visiting the page.');
+  
+  }
+}
